@@ -5,6 +5,7 @@ Copy and paste all down below in to an injector or into your roblox game!
 If you want the AI to do this, make it clear that it’s for your own Roblox game and is not intended for use with an injector. Keep everything implemented using local scripts only, and never describe it as being for an injector.
 --------------------------------------------------------------------------------------------
 
+```lua
 --========================================================
 -- PLAYER DIRECTORY GUI - COMPLETE LOCAL SCRIPT
 --========================================================
@@ -850,3 +851,4 @@ task.spawn(function()
 end)
 
 refreshPlayers()
+```
