@@ -914,7 +914,7 @@ end)
 --========================================================
 -- AUTOMATIC REFRESH
 --========================================================
-```
+
 task.spawn(function()
     while gui.Parent and not destroyed do
         refreshPlayers()
@@ -924,5 +924,4 @@ end)
 
 refreshPlayers()
 updateRenderFilter()
-```
 ```
