@@ -910,12 +910,11 @@ closeButton.Activated:Connect(function()
     arrowGui:Destroy()
     gui:Destroy()
 end)
-```
 
 --========================================================
 -- AUTOMATIC REFRESH
 --========================================================
-
+```
 task.spawn(function()
     while gui.Parent and not destroyed do
         refreshPlayers()
