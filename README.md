@@ -42,6 +42,8 @@ local selectedPlayer = nil
 local selectedHighlight = nil
 local selectedCharacterConnection = nil
 local selectedRemovingConnection = nil
+local renderSelectedOnly = false
+local originalLocalTransparency = setmetatable({}, {__mode = "k"})
 
 local connections = {}
 local rowConnections = {}
@@ -80,7 +82,7 @@ gui.Parent = playerGui
 
 local frame = Instance.new("Frame")
 frame.Name = "MainWindow"
-frame.Size = UDim2.fromOffset(360, 500)
+frame.Size = UDim2.fromOffset(360, 530)
 frame.Position = UDim2.new(0, 20, 0.5, -250)
 frame.BackgroundColor3 = Color3.fromRGB(28, 30, 38)
 frame.BorderSizePixel = 0
@@ -145,11 +147,25 @@ refreshButton.ZIndex = 11
 refreshButton.Parent = frame
 makeCorner(refreshButton, 6)
 
+-- Render only the selected player toggle
+local renderToggle = Instance.new("TextButton")
+renderToggle.Name = "RenderSelectedOnly"
+renderToggle.Size = UDim2.new(1, -24, 0, 28)
+renderToggle.Position = UDim2.fromOffset(12, 122)
+renderToggle.Text = "Render selected player only: OFF"
+renderToggle.TextColor3 = Color3.new(1, 1, 1)
+renderToggle.BackgroundColor3 = Color3.fromRGB(70, 75, 88)
+renderToggle.Font = Enum.Font.GothamBold
+renderToggle.TextSize = 12
+renderToggle.ZIndex = 11
+renderToggle.Parent = frame
+makeCorner(renderToggle, 6)
+
 -- Selected player panel
 local selectedPanel = Instance.new("Frame")
 selectedPanel.Name = "SelectedPlayerPanel"
 selectedPanel.Size = UDim2.new(1, -24, 0, 72)
-selectedPanel.Position = UDim2.fromOffset(12, 124)
+selectedPanel.Position = UDim2.fromOffset(12, 156)
 selectedPanel.BackgroundColor3 = Color3.fromRGB(40, 48, 65)
 selectedPanel.BorderSizePixel = 0
 selectedPanel.ZIndex = 11
@@ -166,7 +182,7 @@ selectedAvatar.Parent = selectedPanel
 makeCorner(selectedAvatar, 27)
 
 local selectedTitle = Instance.new("TextLabel")
-selectedTitle.Size = UDim2.new(1, -78, 0, 20)
+selectedTitle.Size = UDim2.new(1, -148, 0, 20)
 selectedTitle.Position = UDim2.fromOffset(72, 12)
 selectedTitle.BackgroundTransparency = 1
 selectedTitle.Text = "Selected Player"
@@ -178,7 +194,7 @@ selectedTitle.ZIndex = 12
 selectedTitle.Parent = selectedPanel
 
 local selectedName = Instance.new("TextLabel")
-selectedName.Size = UDim2.new(1, -78, 0, 30)
+selectedName.Size = UDim2.new(1, -148, 0, 30)
 selectedName.Position = UDim2.fromOffset(72, 32)
 selectedName.BackgroundTransparency = 1
 selectedName.Text = "No player selected"
@@ -190,11 +206,24 @@ selectedName.TextXAlignment = Enum.TextXAlignment.Left
 selectedName.ZIndex = 12
 selectedName.Parent = selectedPanel
 
+local selectedTeleportButton = Instance.new("TextButton")
+selectedTeleportButton.Name = "SelectedPlayerTeleport"
+selectedTeleportButton.Size = UDim2.fromOffset(64, 38)
+selectedTeleportButton.Position = UDim2.new(1, -74, 0.5, -19)
+selectedTeleportButton.Text = "TP"
+selectedTeleportButton.TextColor3 = Color3.new(1, 1, 1)
+selectedTeleportButton.BackgroundColor3 = Color3.fromRGB(35, 160, 85)
+selectedTeleportButton.Font = Enum.Font.GothamBold
+selectedTeleportButton.TextSize = 14
+selectedTeleportButton.ZIndex = 13
+selectedTeleportButton.Parent = selectedPanel
+makeCorner(selectedTeleportButton, 6)
+
 -- Player list
 local list = Instance.new("ScrollingFrame")
 list.Name = "PlayerList"
-list.Size = UDim2.new(1, -24, 1, -218)
-list.Position = UDim2.fromOffset(12, 204)
+list.Size = UDim2.new(1, -24, 1, -250)
+list.Position = UDim2.fromOffset(12, 236)
 list.BackgroundColor3 = Color3.fromRGB(36, 38, 47)
 list.BorderSizePixel = 0
 list.ScrollBarThickness = 5
@@ -282,6 +311,38 @@ local function showPlayerLeftMessage(name)
             notification.Visible = false
         end
     end)
+end
+
+--========================================================
+-- CLIENT-SIDE SELECTED-PLAYER RENDER FILTER
+--========================================================
+
+local function setCharacterLocallyVisible(character, visible)
+    if not character then return end
+    for _, descendant in ipairs(character:GetDescendants()) do
+        if descendant:IsA("BasePart") then
+            if originalLocalTransparency[descendant] == nil then
+                originalLocalTransparency[descendant] = descendant.LocalTransparencyModifier
+            end
+            descendant.LocalTransparencyModifier = visible and originalLocalTransparency[descendant] or 1
+        end
+    end
+end
+
+local function updateRenderFilter()
+    for _, player in ipairs(Players:GetPlayers()) do
+        local character = player.Character
+        if character then
+            local shouldShow = not renderSelectedOnly
+                or player == localPlayer
+                or player == selectedPlayer
+            setCharacterLocallyVisible(character, shouldShow)
+        end
+    end
+    renderToggle.Text = "Render selected player only: " .. (renderSelectedOnly and "ON" or "OFF")
+    renderToggle.BackgroundColor3 = renderSelectedOnly
+        and Color3.fromRGB(35, 130, 85)
+        or Color3.fromRGB(70, 75, 88)
 end
 
 --========================================================
@@ -501,6 +562,7 @@ local function clearSelection()
     selectedPlayer = nil
     updateSelectedPanel(nil)
     hideArrow()
+    updateRenderFilter()
 end
 
 local function toggleSelection(target)
@@ -521,6 +583,7 @@ local function toggleSelection(target)
     selectedPlayer = target
     updateSelectedPanel(target)
     applyHighlight(target.Character)
+    updateRenderFilter()
 
     selectedCharacterConnection = target.CharacterAdded:Connect(function(character)
         if not destroyed and selectedPlayer == target then
@@ -625,6 +688,7 @@ local function refreshPlayers()
 
     refreshing = true
     clearRows()
+    updateRenderFilter()
 
     local query = search.Text:lower()
     local currentPlayers = Players:GetPlayers()
@@ -728,6 +792,13 @@ end
 
 track(search:GetPropertyChangedSignal("Text"):Connect(refreshPlayers))
 track(refreshButton.Activated:Connect(refreshPlayers))
+track(renderToggle.Activated:Connect(function()
+    renderSelectedOnly = not renderSelectedOnly
+    updateRenderFilter()
+end))
+track(selectedTeleportButton.Activated:Connect(function()
+    teleportToPlayer(selectedPlayer)
+end))
 track(Players.PlayerAdded:Connect(refreshPlayers))
 
 track(Players.PlayerRemoving:Connect(function(player)
@@ -852,4 +923,6 @@ task.spawn(function()
 end)
 
 refreshPlayers()
+updateRenderFilter()
+```
 ```
