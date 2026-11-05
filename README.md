@@ -910,6 +910,7 @@ closeButton.Activated:Connect(function()
     arrowGui:Destroy()
     gui:Destroy()
 end)
+```
 
 --========================================================
 -- AUTOMATIC REFRESH
